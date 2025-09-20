@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบแผนที่โรงเรียน</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            position: relative;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            gap: 10px;
+        }
+
+        .nav-tab {
+            padding: 12px 24px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-tab:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        .nav-tab.active {
+            background: white;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .tab-content {
+            display: none;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* User Page Styles */
+        .search-section {
+            margin-bottom: 30px;
+        }
+
+        .search-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 15px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .search-btn, .clear-btn {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .search-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .clear-btn {
+            background: #f8f9fa;
+            color: #6c757d;
+            border: 2px solid #e1e5e9;
+        }
+
+        .search-btn:hover, .clear-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .map-container {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            border: 3px solid #e1e5e9;
+            border-radius: 20px;
+            overflow: hidden;
+            background: #f8f9fa;
+            margin-bottom: 20px;
+        }
+
+        .map-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            cursor: crosshair;
+        }
+
+        .map-marker {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 3px solid white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .map-marker.start {
+            background: #28a745;
+        }
+
+        .map-marker.end {
+            background: #dc3545;
+        }
+
+        .map-marker:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+
+        .map-marker.pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(102, 126, 234, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0); }
+        }
+
+        .path-line {
+            position: absolute;
+            background: #667eea;
+            z-index: 5;
+            border-radius: 2px;
+            opacity: 0.8;
+        }
+
+        .room-info {
+            background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .room-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .room-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 4px solid #667eea;
+        }
+
+        .room-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+
+        /* Admin Page Styles */
+        .admin-section {
+            margin-bottom: 30px;
+            padding: 25px;
+            background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+        }
+
+        .admin-section h3 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .file-upload {
+            border: 2px dashed #667eea;
+            padding: 40px;
+            text-align: center;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .file-upload:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: scale(1.02);
+        }
+
+        .file-upload.dragover {
+            background: rgba(102, 126, 234, 0.2);
+            border-color: #5a6fd8;
+        }
+
+        .status-message {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .coordinates-display {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            border: 1px solid #e1e5e9;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .search-container {
+                flex-direction: column;
+            }
+            
+            .map-container {
+                height: 300px;
+            }
+            
+            .room-list {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏫 ระบบแผนที่โรงเรียน</h1>
+            <p>ค้นหาห้องเรียนและดูเส้นทาง</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('user')">หน้าผู้ใช้งาน</button>
+            <button class="nav-tab" onclick="switchTab('admin')">หน้า Admin</button>
+        </div>
+
+        <!-- User Page -->
+        <div id="user-tab" class="tab-content active">
+            <div class="search-section">
+                <h2>🔍 ค้นหาห้องเรียน</h2>
+                <div class="search-container">
+                    <input type="text" id="roomSearch" class="search-input" placeholder="กรอกชื่อห้องเรียน เช่น ห้อง 101, ห้องคอมพิวเตอร์">
+                    <button class="search-btn" onclick="searchRoom()">🔍 ค้นหา</button>
+                    <button class="clear-btn" onclick="clearSearch()">🗑️ ล้าง</button>
+                </div>
+            </div>
+
+            <div class="map-container">
+                <canvas id="mapCanvas" class="map-image"></canvas>
+                <div id="mapMarkers"></div>
+            </div>
+
+            <div id="roomInfo" class="room-info" style="display: none;">
+                <h3>ข้อมูลห้องเรียน</h3>
+                <div id="roomDetails"></div>
+            </div>
+
+            <div class="room-list" id="roomList"></div>
+        </div>
+
+        <!-- Admin Page -->
+        <div id="admin-tab" class="tab-content">
+            <div class="admin-section">
+                <h3>🔗 เชื่อมต่อ Google Sheets</h3>
+                <div class="form-group">
+                    <label for="sheetsUrl">URL ของ Google Sheets:</label>
+                    <input type="text" id="sheetsUrl" class="form-input" placeholder="https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit">
+                </div>
+                <div class="form-group">
+                    <label for="apiKey">Google Sheets API Key:</label>
+                    <input type="text" id="apiKey" class="form-input" placeholder="กรอก API Key">
+                </div>
+                <button class="btn-primary" onclick="connectGoogleSheets()">เชื่อมต่อ Google Sheets</button>
+                <div id="connectionStatus"></div>
+            </div>
+
+            <div class="admin-section">
+                <h3>🗺️ อัพโหลดแผนที่โรงเรียน</h3>
+                <div class="file-upload" onclick="document.getElementById('mapFile').click()">
+                    <input type="file" id="mapFile" accept="image/*" style="display: none;" onchange="uploadMap(event)">
+                    <div>📁 คลิกเพื่อเลือกไฟล์แผนที่</div>
+                    <div style="margin-top: 10px; color: #6c757d;">รองรับไฟล์ JPG, PNG, GIF</div>
+                </div>
+                <div id="uploadStatus"></div>
+            </div>
+
+            <div class="admin-section">
+                <h3>📍 จัดการห้องเรียน</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <div class="form-group">
+                            <label for="roomName">ชื่อห้องเรียน:</label>
+                            <input type="text" id="roomName" class="form-input" placeholder="เช่น ห้อง 101">
+                        </div>
+                        <div class="form-group">
+                            <label for="roomDescription">รายละเอียด:</label>
+                            <input type="text" id="roomDescription" class="form-input" placeholder="เช่น ห้องเรียนชั้น ม.1/1">
+                        </div>
+                        <div class="form-group">
+                            <label for="roomFloor">ชั้น:</label>
+                            <input type="text" id="roomFloor" class="form-input" placeholder="เช่น ชั้น 1">
+                        </div>
+                    </div>
+                    <div>
+                        <div class="coordinates-display">
+                            <h4>ตำแหน่งห้องเรียน</h4>
+                            <p>คลิกบนแผนที่เพื่อกำหนดตำแหน่ง</p>
+                            <div id="selectedCoordinates">X: -, Y: -</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-primary" onclick="addRoom()">เพิ่มห้องเรียน</button>
+                <button class="btn-secondary" onclick="updateGoogleSheets()">อัปเดตข้อมูลใน Google Sheets</button>
+                <div id="roomStatus"></div>
+            </div>
+
+            <div class="admin-section">
+                <h3>📝 รายการห้องเรียนทั้งหmd</h3>
+                <div id="adminRoomList"></div>
+                <button class="btn-primary" onclick="loadRoomsFromSheets()">โหลดข้อมูลจาก Google Sheets</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentMap = null;
+        let rooms = [];
+        let selectedCoordinates = { x: null, y: null };
+        let startPoint = null;
+        let endPoint = null;
+        let googleSheetsConfig = {
+            url: '',
+            apiKey: '',
+            sheetId: ''
+        };
+
+        // Sample room data
+        const sampleRooms = [
+            { name: "ห้อง 101", description: "ห้องเรียน ม.1/1", floor: "ชั้น 1", x: 100, y: 150 },
+            { name: "ห้อง 102", description: "ห้องเรียน ม.1/2", floor: "ชั้น 1", x: 200, y: 150 },
+            { name: "ห้องคอมพิวเตอร์", description: "ห้องปฏิบัติการคอมพิวเตอร์", floor: "ชั้น 2", x: 150, y: 100 },
+            { name: "ห้องสมุด", description: "ห้องสมุดโรงเรียน", floor: "ชั้น 2", x: 300, y: 200 },
+            { name: "ห้องวิทยาศาสตร์", description: "ห้องทดลองวิทยาศาสตร์", floor: "ชั้น 3", x: 250, y: 120 }
+        ];
+
+        // Initialize
+        window.onload = function() {
+            rooms = [...sampleRooms];
+            initializeMap();
+            displayRooms();
+            displayAdminRooms();
+        };
+
+        // Tab switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Map initialization
+        function initializeMap() {
+            const canvas = document.getElementById('mapCanvas');
+            const ctx = canvas.getContext('2d');
+            const container = canvas.parentElement;
+            
+            canvas.width = container.offsetWidth;
+            canvas.height = container.offsetHeight;
+            
+            // Draw default map
+            drawDefaultMap(ctx, canvas.width, canvas.height);
+            
+            // Add click event for admin
+            canvas.addEventListener('click', function(e) {
+                if (document.getElementById('admin-tab').classList.contains('active')) {
+                    const rect = canvas.getBoundingClientRect();
+                    selectedCoordinates.x = Math.round(e.clientX - rect.left);
+                    selectedCoordinates.y = Math.round(e.clientY - rect.top);
+                    updateCoordinatesDisplay();
+                }
+            });
+        }
+
+        function drawDefaultMap(ctx, width, height) {
+            // Clear canvas
+            ctx.fillStyle = '#f8f9fa';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Draw building structure
+            ctx.strokeStyle = '#495057';
+            ctx.lineWidth = 2;
+            
+            // Main building outline
+            ctx.strokeRect(50, 50, width - 100, height - 100);
+            
+            // Draw corridors
+            ctx.beginPath();
+            ctx.moveTo(50, height / 2);
+            ctx.lineTo(width - 50, height / 2);
+            ctx.moveTo(width / 2, 50);
+            ctx.lineTo(width / 2, height - 50);
+            ctx.stroke();
+            
+            // Draw rooms as rectangles
+            rooms.forEach((room, index) => {
+                ctx.fillStyle = '#667eea';
+                ctx.fillRect(room.x - 15, room.y - 15, 30, 30);
+                
+                // Room label
+                ctx.fillStyle = '#495057';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(room.name, room.x, room.y + 50);
+            });
+            
+            // Draw path if exists
+            if (startPoint && endPoint) {
+                drawPath(ctx, startPoint, endPoint);
+            }
+        }
+
+        function drawPath(ctx, start, end) {
+            ctx.strokeStyle = '#667eea';
+            ctx.lineWidth = 4;
+            ctx.setLineDash([5, 5]);
+            
+            ctx.beginPath();
+            ctx.moveTo(start.x, start.y);
+            ctx.lineTo(end.x, end.y);
+            ctx.stroke();
+            
+            ctx.setLineDash([]);
+        }
+
+        // Room search functionality
+        function searchRoom() {
+            const searchTerm = document.getElementById('roomSearch').value.toLowerCase();
+            const foundRoom = rooms.find(room => 
+                room.name.toLowerCase().includes(searchTerm) ||
+                room.description.toLowerCase().includes(searchTerm)
+            );
+            
+            if (foundRoom) {
+                // Set start point (entrance) and end point (room)
+                startPoint = { x: 50, y: foundRoom.y };
+                endPoint = { x: foundRoom.x, y: foundRoom.y };
+                
+                // Redraw map with path
+                const canvas = document.getElementById('mapCanvas');
+                const ctx = canvas.getContext('2d');
+                drawDefaultMap(ctx, canvas.width, canvas.height);
+                
+                // Show room info
+                displayRoomInfo(foundRoom);
+                
+                // Highlight room in list
+                highlightRoom(foundRoom.name);
+            } else {
+                showMessage('ไม่พบห้องเรียนที่ค้นหา', 'error');
+            }
+        }
+
+        function clearSearch() {
+            document.getElementById('roomSearch').value = '';
+            startPoint = null;
+            endPoint = null;
+            
+            // Redraw map without path
+            const canvas = document.getElementById('mapCanvas');
+            const ctx = canvas.getContext('2d');
+            drawDefaultMap(ctx, canvas.width, canvas.height);
+            
+            // Hide room info
+            document.getElementById('roomInfo').style.display = 'none';
+            
+            // Remove highlights
+            document.querySelectorAll('.room-card').forEach(card => {
+                card.style.backgroundColor = 'white';
+            });
+        }
+
+        function displayRoomInfo(room) {
+            const roomInfo = document.getElementById('roomInfo');
+            const roomDetails = document.getElementById('roomDetails');
+            
+            roomDetails.innerHTML = `
+                <h4>${room.name}</h4>
+                <p><strong>รายละเอียด:</strong> ${room.description}</p>
+                <p><strong>ตำแหน่ง:</strong> ${room.floor}</p>
+                <p><strong>พิกัด:</strong> X: ${room.x}, Y: ${room.y}</p>
+            `;
+            
+            roomInfo.style.display = 'block';
+        }
+
+        function displayRooms() {
+            const roomList = document.getElementById('roomList');
+            roomList.innerHTML = '';
+            
+            rooms.forEach(room => {
+                const roomCard = document.createElement('div');
+                roomCard.className = 'room-card';
+                roomCard.innerHTML = `
+                    <h4>${room.name}</h4>
+                    <p>${room.description}</p>
+                    <p><small>${room.floor}</small></p>
+                `;
+                roomCard.onclick = () => {
+                    document.getElementById('roomSearch').value = room.name;
+                    searchRoom();
+                };
+                roomList.appendChild(roomCard);
+            });
+        }
+
+        function highlightRoom(roomName) {
+            document.querySelectorAll('.room-card').forEach(card => {
+                if (card.querySelector('h4').textContent === roomName) {
+                    card.style.backgroundColor = '#e3f2fd';
+                } else {
+                    card.style.backgroundColor = 'white';
+                }
+            });
+        }
+
+        // Admin functionality
+        function connectGoogleSheets() {
+            const url = document.getElementById('sheetsUrl').value;
+            const apiKey = document.getElementById('apiKey').value;
+            
+            if (!url || !apiKey) {
+                showStatusMessage('connectionStatus', 'กรุณากรอก URL และ API Key', 'error');
+                return;
+            }
+            
+            try {
+                // Extract sheet ID from URL
+                const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+                if (match) {
+                    googleSheetsConfig = {
+                        url: url,
+                        apiKey: apiKey,
+                        sheetId: match[1]
+                    };
+                    showStatusMessage('connectionStatus', 'เชื่อมต่อ Google Sheets สำเร็จ!', 'success');
+                } else {
+                    showStatusMessage('connectionStatus', 'URL ไม่ถูกต้อง', 'error');
+                }
+            } catch (error) {
+                showStatusMessage('connectionStatus', 'เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+            }
+        }
+
+        function uploadMap(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.getElementById('mapCanvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Draw uploaded image
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    // Redraw rooms on top
+                    rooms.forEach(room => {
+                        ctx.fillStyle = '#667eea';
+                        ctx.fillRect(room.x - 15, room.y - 15, 30, 30);
+                        
+                        ctx.fillStyle = 'white';
+                        ctx.font = '12px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(room.name, room.x, room.y + 5);
+                    });
+                    
+                    currentMap = e.target.result;
+                    showStatusMessage('uploadStatus', 'อัพโหลดแผนที่สำเร็จ!', 'success');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function updateCoordinatesDisplay() {
+            document.getElementById('selectedCoordinates').textContent = 
+                `X: ${selectedCoordinates.x}, Y: ${selectedCoordinates.y}`;
+        }
+
+        function addRoom() {
+            const name = document.getElementById('roomName').value;
+            const description = document.getElementById('roomDescription').value;
+            const floor = document.getElementById('roomFloor').value;
+            
+            if (!name || !description || !floor || !selectedCoordinates.x) {
+                showStatusMessage('roomStatus', 'กรุณากรอกข้อมูลให้ครบถ้วนและเลือกตำแหน่งบนแผนที่', 'error');
+                return;
+            }
+            
+            const newRoom = {
+                name: name,
+                description: description,
+                floor: floor,
+                x: selectedCoordinates.x,
+                y: selectedCoordinates.y
+            };
+            
+            rooms.push(newRoom);
+            
+            // Clear form
+            document.getElementById('roomName').value = '';
+            document.getElementById('roomDescription').value = '';
+            document.getElementById('roomFloor').value = '';
+            selectedCoordinates = { x: null, y: null };
+            updateCoordinatesDisplay();
+            
+            // Update displays
+            displayRooms();
+            displayAdminRooms();
+            
+            // Redraw map
+            const canvas = document.getElementById('mapCanvas');
+            const ctx = canvas.getContext('2d');
+            drawDefaultMap(ctx, canvas.width, canvas.height);
+            
+            showStatusMessage('roomStatus', 'เพิ่มห้องเรียนสำเร็จ!', 'success');
+        }
+
+        function displayAdminRooms() {
+            const adminRoomList = document.getElementById('adminRoomList');
+            adminRoomList.innerHTML = '';
+            
+            rooms.forEach((room, index) => {
+                const roomDiv = document.createElement('div');
+                roomDiv.className = 'room-card';
+                roomDiv.innerHTML = `
+                    <h4>${room.name}</h4>
+                    <p>${room.description}</p>
+                    <p><small>${room.floor} - พิกัด: (${room.x}, ${room.y})</small></p>
+                    <button class="btn-secondary" onclick="deleteRoom(${index})" style="margin-top: 10px;">ลบ</button>
+                `;
+                adminRoomList.appendChild(roomDiv);
+            });
+        }
+
+        function deleteRoom(index) {
+            if (confirm('ต้องการลบห้องเรียนนี้หรือไม่?')) {
+                rooms.splice(index, 1);
+                displayRooms();
+                displayAdminRooms();
+                
+                // Redraw map
+                const canvas = document.getElementById('mapCanvas');
+                const ctx = canvas.getContext('2
